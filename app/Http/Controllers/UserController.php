@@ -4,38 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UserStoreUpdateRequest;
 use App\Http\Resources\UserResource;
+use App\Models\PessoaFisica;
+use App\Models\PessoaJuridica;
 use App\Models\User;
-use App\Services\PermissionService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class UserController extends Controller
 {   
     public function __construct(
-        protected User $model,
-        protected PermissionService $permissionService
+        protected User $userModel,
+        protected PessoaJuridica $pessoaJuridicaModel,
+        protected PessoaFisica $pessoaFisicaModel,
     ) {}
     public function index()
     {
-        $perPage = request()->get('per_page', 10); 
-        $filter = request()->get('filter', ''); 
-        $query = $this->model->with('roles');
-        
-        if (!empty($filter)) {
-            $query->where('name', 'like', "%{$filter}%");
-        }
-
-        if (!PermissionService::isNoxusUser() && !PermissionService::isAdminUser()) {
-            $query->whereDoesntHave('roles', function ($roleQuery) {
-                $roleQuery->whereIn('roles.id', [1, 2]);
-            });
-        } else if (!PermissionService::isNoxusUser() && PermissionService::isAdminUser()) {
-            $query->whereDoesntHave('roles', function ($roleQuery) {
-                $roleQuery->where('roles.id', 1);
-            });
-        }
-
         return UserResource::collection(
-            $query->paginate($perPage)
+            $this->userModel->get()
         );
     }
 
@@ -43,58 +26,79 @@ class UserController extends Controller
     {   
         $data = $request->validated();
         $data['password'] = bcrypt($request->password);
+        $user = $this->userModel->create($data);
 
-        $user = User::create($data);
-        $user->roles()->sync($request->roles);
-        return new UserResource($user);
+        if ($request->has('pessoa_fisica')) {
+            $pessoaFisica = new PessoaFisica($data['pessoa_fisica']);
+            $user->pessoaFisica()->save($pessoaFisica);
+        }
+        
+        if ($request->has('pessoa_juridica')) {
+            $pessoaJuridica = new PessoaJuridica($data['pessoa_juridica']);
+            $user->pessoaJuridica()->save($pessoaJuridica);
+        }
+
+        return new UserResource($user->load(['pessoaFisica', 'pessoaJuridica']));
     }
 
     public function show(string $id)
     {   
-        $query = $this->model->with('roles');
-
-        if (!PermissionService::isNoxusUser() && !PermissionService::isAdminUser()) {
-            $query->whereDoesntHave('roles', function ($roleQuery) {
-                $roleQuery->whereIn('roles.id', [1, 2]);
-            });
-        } elseif (!PermissionService::isNoxusUser() && PermissionService::isAdminUser()) {
-            $query->whereDoesntHave('roles', function ($roleQuery) {
-                $roleQuery->where('roles.id', 1);
-            });
-        }
-
-        try {
-            $user = $query->findOrFail($id);
-            return new UserResource($user);
-        } catch (ModelNotFoundException $e) {
-            return response()->json(['message' => 'Usuário não encontrado ou inacessível.'], 404);
-        }
+        return new UserResource(
+            $this->userModel->with(['pessoaFisica', 'pessoaJuridica'])->findOrFail($id)
+        );
     }
 
     public function update(UserStoreUpdateRequest $request, string $id)
     {   
-        $user = $this->model->findOrFail($id);
+        $user = $this->userModel->with(['pessoaFisica', 'pessoaJuridica'])->findOrFail($id);
+
         $data = $request->validated();
         if($request->password) $data['password'] = bcrypt($request->password);
         $user->update($data);
-        $user->roles()->sync($request->roles);
-        User::forgetUserPermissionsCache();
-        return new UserResource($user);
+
+        if ($request->has('pessoa_fisica')) {
+
+            if($user->pessoaFisica){
+                $user->pessoaFisica->update($data['pessoa_fisica']);
+            } else {
+                $pessoaFisica = new PessoaFisica($data['pessoa_fisica']);
+                $user->pessoaFisica()->save($pessoaFisica);
+            }
+        }
+
+        if ($request->has('pessoa_juridica')) {
+
+            if($user->pessoaJuridica){
+                $user->pessoaJuridica->update($data['pessoa_juridica']);
+            } else {
+                $pessoaJuridica = new PessoaJuridica($data['pessoa_juridica']);
+                $user->pessoaJuridica()->save($pessoaJuridica);
+            }
+        }
+
+        return new UserResource($user->load(['pessoaFisica', 'pessoaJuridica']));
     }
 
     public function changeStatus(string $id)
     {   
-        $user = $this->model->findOrFail($id);
+        $user = $this->userModel->findOrFail($id);
         $user->status = $user->status === 1 ? 2 : 1;
         $user->save();
-        return new UserResource($user);
+        return new UserResource($user->load(['pessoaFisica', 'pessoaJuridica']));
     }
 
     public function destroy(string $id)
     {
-        $user = $this->model->findOrFail($id);
-        $user->roles()->detach();
+        $user = $this->userModel->findOrFail($id);
+
+        if ($user->pessoaFisica) {
+            $user->pessoaFisica->delete();
+        } elseif ($user->pessoaJuridica) {
+            $user->pessoaJuridica->delete();
+        }
+
         $user->delete();
+
         return response()->noContent();
     }
 }

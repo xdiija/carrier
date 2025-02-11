@@ -38,8 +38,8 @@ class AuthController extends Controller
         $user = auth()->user();
 
         $userData = [
-            'name' => $user->pessoaJuridica ? $user->pessoaJuridica->name : 
-                $user->pessoaFisica->name
+            'name' => $user->pessoaFisica ? $user->pessoaFisica->name :
+                $user->pessoaJuridica->nome_fantasia
         ];
 
         return $this->respondWithToken($token, $userData);
