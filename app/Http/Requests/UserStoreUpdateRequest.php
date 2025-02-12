@@ -37,6 +37,14 @@ class UserStoreUpdateRequest extends FormRequest
                 'integer',
                 'in:1,2'
             ],
+            'pessoa_fisica' => [
+                'array',
+                'required_without:pessoa_juridica',
+            ],
+            'pessoa_juridica' => [
+                'array',
+                'required_without:pessoa_fisica',
+            ],
         ];
 
         $rules = array_merge($rules, $this->rulesPF(), $this->rulesPJ());
