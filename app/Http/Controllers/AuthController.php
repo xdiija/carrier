@@ -5,25 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Helpers\StatusHelper;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
-    /**
-     * Create a new AuthController instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('auth:api', ['except' => ['login']]);
     }
 
-    /**
-     * Get a JWT via given credentials.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function login()
+    public function login(): JsonResponse
     {
         $credentials = request(['email', 'password']);
 
@@ -35,62 +26,41 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        return $this->respondWithToken($token, $this->getUserData());
+    }
+
+    public function me(): JsonResponse
+    {
+        return response()->json(
+            $this->getUserData()
+        );
+    }
+
+    protected function getUserData(): array
+    {
         $user = auth()->user();
 
         $userData = [
-            'name' => $user->pessoaFisica ? $user->pessoaFisica->name :
-                $user->pessoaJuridica->nome_fantasia
+            'name' => $user->pessoaJuridica->nome_fantasia ?? $user->pessoaFisica->name ?? null,
+            'email' => $user->email
         ];
 
-        return $this->respondWithToken($token, $userData);
+        return $userData;
     }
 
-    /**
-     * Get the authenticated User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function me()
-    {
-        $user = auth()->user();
-        return response()->json([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'roles' => $user->roles,
-        ]);
-    }
-
-    /**
-     * Log the user out (Invalidate the token).
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function logout()
+    public function logout(): JsonResponse
     {
         auth()->logout();
 
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    /**
-     * Refresh a token.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function refresh()
+    public function refresh(): JsonResponse
     {
         return $this->respondWithToken(auth()->refresh());
     }
 
-    /**
-     * Get the token array structure.
-     *
-     * @param  string $token
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    protected function respondWithToken($token, $user = [])
+    protected function respondWithToken(string $token, array $user = []): JsonResponse
     {
         return response()->json([
             'access_token' => $token,
