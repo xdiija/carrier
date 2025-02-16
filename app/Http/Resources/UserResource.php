@@ -14,18 +14,9 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'status' => $this->status,
-            'pessoa_fisica' => $this->pessoaFisica ? [
-                'id' => $this->pessoaFisica->id,
-                'cpf' => $this->pessoaFisica->cpf,
-                'name' => $this->pessoaFisica->name,
-                'birthdate' => $this->pessoaFisica->birthdate,
-            ] : null,
-            'pessoa_juridica' => $this->pessoaJuridica ? [
-                'id' => $this->pessoaJuridica->id,
-                'cnpj' => $this->pessoaJuridica->cnpj,
-                'razao_social' => $this->pessoaJuridica->razao_social,
-                'nome_fantasia' => $this->pessoaJuridica->nome_fantasia,
-            ] : null,
+            'cpf' => $this->cpf,
+            'name' => $this->name,
+            'cnpj' => $this->cnpj,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

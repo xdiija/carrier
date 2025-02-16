@@ -41,7 +41,7 @@ class AuthController extends Controller
         $user = auth()->user();
 
         $userData = [
-            'name' => $user->pessoaJuridica->nome_fantasia ?? $user->pessoaFisica->name ?? null,
+            'name' => $user->name,
             'email' => $user->email
         ];
 
