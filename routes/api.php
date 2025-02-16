@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\{
     AuthController,
-    UserController
+    TransactionController,
+    UserController,
 };
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+Route::post('users', [UserController::class, 'store'])->name('users.store');
 
 Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -14,9 +17,6 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('me', 'me')->name('me');
 });
 
-/**
- * Core
- */
 Route::prefix('users')->middleware('auth')->controller(UserController::class)->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -24,7 +24,14 @@ Route::prefix('users')->middleware('auth')->controller(UserController::class)->g
     Route::get('/', 'index');
     Route::get('/{id}', 'show');
     Route::put('/{id}', 'update');
-    Route::post('/', 'store');
     Route::put('/{id}/status', 'changeStatus');
+    Route::delete('/{id}', 'destroy');
+    Route::get('/wallet/balance', 'balance');
+});
+
+Route::prefix('transactions')->middleware('auth')->controller(TransactionController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/deposit', 'deposit');
+    Route::post('/subtract', 'subtract');
     Route::delete('/{id}', 'destroy');
 });

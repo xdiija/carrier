@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\CpfHelper;
 use App\Http\Requests\UserStoreUpdateRequest;
 use App\Http\Resources\UserResource;
 use App\Models\PessoaFisica;
 use App\Models\PessoaJuridica;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {   
@@ -23,22 +25,35 @@ class UserController extends Controller
     }
 
     public function store(UserStoreUpdateRequest $request)
-    {   
-        $data = $request->validated();
-        $data['password'] = bcrypt($request->password);
-        $user = $this->userModel->create($data);
+    {
+        DB::beginTransaction();
 
-        if ($request->has('pessoa_fisica')) {
-            $pessoaFisica = new PessoaFisica($data['pessoa_fisica']);
-            $user->pessoaFisica()->save($pessoaFisica);
-        }
-        
-        if ($request->has('pessoa_juridica')) {
-            $pessoaJuridica = new PessoaJuridica($data['pessoa_juridica']);
-            $user->pessoaJuridica()->save($pessoaJuridica);
-        }
+        try {
+            $data = $request->validated();
+            $data['password'] = bcrypt($request->password);
 
-        return new UserResource($user->load(['pessoaFisica', 'pessoaJuridica']));
+            $user = $this->userModel->create($data);
+
+            if ($request->has('pessoa_fisica')) {
+                $pessoaFisica = new PessoaFisica($data['pessoa_fisica']);
+                $user->pessoaFisica()->save($pessoaFisica);
+            }
+            
+            if ($request->has('pessoa_juridica')) {
+                $pessoaJuridica = new PessoaJuridica($data['pessoa_juridica']);
+                $user->pessoaJuridica()->save($pessoaJuridica);
+            }
+
+            $user->wallet()->create(['balance' => 0]); 
+
+            DB::commit();
+
+            return new UserResource($user->load(['pessoaFisica', 'pessoaJuridica']));
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'An error occurred. Please try again.'], 500);
+        }
     }
 
     public function show(string $id)
@@ -46,6 +61,12 @@ class UserController extends Controller
         return new UserResource(
             $this->userModel->with(['pessoaFisica', 'pessoaJuridica'])->findOrFail($id)
         );
+    }
+
+    public function balance()
+    {
+        $wallet = auth()->user()->wallet;
+        return response()->json(['balance' => $wallet->balance]);
     }
 
     public function update(UserStoreUpdateRequest $request, string $id)
