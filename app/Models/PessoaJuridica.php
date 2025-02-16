@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\CnpjHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,6 +20,11 @@ class PessoaJuridica extends Model
         'inscricao_estadual',
         'inscricao_municipal',
     ];
+
+    public function setCnpjAttribute($value)
+    {
+        $this->attributes['cnpj'] = CnpjHelper::sanitize($value);
+    }
 
     public function user()
     {

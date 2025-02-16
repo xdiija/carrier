@@ -2,15 +2,15 @@
 
 namespace App\Rules;
 
-use App\Helpers\PhoneHelper;
-use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Closure;
+use App\Helpers\CnpjHelper;
 
-class Phone implements ValidationRule
+class ValidCnpj implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (!PhoneHelper::isValid($value)) {
+        if (!CnpjHelper::isValid($value)) {
             $fail("O campo $attribute é inválido.");
         }
     }
