@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\{
     AuthController,
+    PostingPointController,
+    RecipientController,
+    SenderController,
+    ShippingController,
+    StateController,
     TransactionController,
     UserController,
 };
@@ -33,5 +38,25 @@ Route::prefix('transactions')->middleware('auth')->controller(TransactionControl
     Route::get('/', 'index');
     Route::post('/deposit', 'deposit');
     Route::post('/subtract', 'subtract');
+    Route::delete('/{id}', 'destroy');
+});
+
+Route::prefix('states')->middleware('auth')->controller(StateController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{id}', 'show');
+});
+
+Route::prefix('shippings')->middleware('auth')->controller(ShippingController::class)->group(function () {
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::put('/{id}', 'update');
+    Route::delete('/{id}', 'destroy');
+});
+
+Route::prefix('posting-points')->middleware('auth')->controller(PostingPointController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::put('/{id}', 'update');
     Route::delete('/{id}', 'destroy');
 });

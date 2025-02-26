@@ -41,8 +41,14 @@ class AuthController extends Controller
         $user = auth()->user();
 
         $userData = [
+            'id' => $user->id,
             'name' => $user->name,
-            'email' => $user->email
+            'email' => $user->email,
+            'cpf' => $user->cpf,
+            'cnpj' => $user->cnpj,
+            'wallet' => [
+                'balance' => $user->wallet->balance
+            ]
         ];
 
         return $userData;
